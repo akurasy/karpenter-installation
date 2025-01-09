@@ -254,7 +254,44 @@ You will need to add a section to the mapRoles that looks something like this. R
 ```
 
 9.  Deploy Karpenter.
+Before deploy karpenter, we need to set up a sqs queue that krpenter will use and assign sqs permission. run the below command as bash script
+
+```
+#!/bin/sh
+
+# create a sqs queue for carpenter
+aws sqs create-queue --queue-name witty-cluster --region us-west-2
+
+#create permission for carpenter role to access the sqs queue
+cat <<EOF > karpenter-sqs-policy.json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "sqs:GetQueueUrl",
+        "sqs:ReceiveMessage",
+        "sqs:DeleteMessage",
+        "sqs:GetQueueAttributes"
+      ],
+      "Resource": "arn:aws:sqs:us-west-2:878726137682:witty-cluster"
+    }
+  ]
+}
+EOF
+
+
+#run this
+aws iam put-role-policy \
+  --role-name KarpenterControllerRole-witty-cluster \
+  --policy-name KarpenterSQSPolicy \
+  --policy-document file://karpenter-sqs-policy.json
+
+```
+
 First set the Karpenter release you want to deploy.
+
 
 ```
 export KARPENTER_VERSION="1.1.1"
